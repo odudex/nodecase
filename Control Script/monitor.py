@@ -15,11 +15,12 @@ GPIOpower = 26      # GPIO connected to power monitor
 GPIOfan = 16        # GPIO connected fan MOSFET switch
 
 # General definitions
-sample_period = 5 #period(seconds) in which status is verified
+debug = False
+sample_period = 30 #period(seconds) in which status is verified
 
 # Power monitor definitions
 power_monitor = True
-no_power_timeout = 30 #Time(seconds) monitor waits before shutdown
+no_power_timeout = 120 #Time(seconds) monitor waits before shutdown
 
 # Temperature control definitions
 control_temperature = True
@@ -48,25 +49,25 @@ def mainloop(logf):
     fanPWM.start(100) #starts at 100% duty cycle(power)
     while True:
         time.sleep(sample_period)
+        message = ""
         if power_monitor:
             if gpio.input(GPIOpower):
-                logger.info("Power ok")
+                message += "Power ok\n"
                 power_counter = no_power_timeout/sample_period
             else:
                 power_counter -= 1
                 if not power_counter:
-                    logger.info("Shutting down")
+                    message += "Shutting down\n"
                     os.system("cd /home/admin && XXshutdown.sh")
                 else:
-                    message = 'Power lost! Shutting down in '
+                    message += 'Power lost! Shutting down in '
                     message += str(power_counter*sample_period)
-                    message += ' seconds'
-                    logger.info(message)
+                    message += ' seconds\n'
 
         if control_temperature: #todo - test new control without pwm
             cpu = CPUTemperature()
             temperature = int(cpu.temperature)
-            message = str(temperature)
+            message += str(temperature)
             message += "C"
             if cooling:
                 if temperature > trigger_temp:
@@ -82,6 +83,7 @@ def mainloop(logf):
                     fanPWM.start(fan_full_power)
                     cooling = True
                 message += " Fan off"
+        if debug:
             logger.info(message)
             
 
