@@ -33,7 +33,7 @@ cooling = True
 gpio.setmode(gpio.BCM)
 gpio.setup(GPIOpower, gpio.IN, pull_up_down=gpio.PUD_DOWN)
 gpio.setup(GPIOfan, gpio.OUT)
-fanPWM = gpio.PWM(GPIOfan,100) #100Hz
+# fanPWM = gpio.PWM(GPIOfan,100) #100Hz
 
 def mainloop(logf):
     global cooling
@@ -46,7 +46,8 @@ def mainloop(logf):
     fh.setFormatter(formatter)
     logger.addHandler(fh)
     power_counter = no_power_timeout/sample_period
-    fanPWM.start(100) #starts at 100% duty cycle(power)
+    gpio.output(GPIOfan, 1)
+    # fanPWM.start(100) #starts at 100% duty cycle(power)
     while True:
         time.sleep(sample_period)
         message = ""
@@ -56,9 +57,9 @@ def mainloop(logf):
                 power_counter = no_power_timeout/sample_period
             else:
                 power_counter -= 1
-                if not power_counter:
+                if power_counter < 1:
                     message += "Shutting down\n"
-                    os.system("cd /home/admin && XXshutdown.sh")
+                    os.system("cd /home/admin && ./XXshutdown.sh")
                 else:
                     message += 'Power lost! Shutting down in '
                     message += str(power_counter*sample_period)
@@ -71,16 +72,20 @@ def mainloop(logf):
             message += "C"
             if cooling:
                 if temperature > trigger_temp:
-                    fanPWM.ChangeDutyCycle(fan_full_power)
+                    gpio.output(GPIOfan, 1)
+                    # fanPWM.ChangeDutyCycle(fan_full_power)
                 elif temperature > off_temp:
-                    fanPWM.ChangeDutyCycle(fan_cruise_power)
+                    gpio.output(GPIOfan, 1)
+                    # fanPWM.ChangeDutyCycle(fan_cruise_power)
                 else:
-                    fanPWM.stop()
+                    gpio.output(GPIOfan, 0)
+                    #fanPWM.stop()
                     cooling = False
                 message += " Cooling"
             else:
                 if temperature > trigger_temp:
-                    fanPWM.start(fan_full_power)
+                    gpio.output(GPIOfan, 1)
+                    #fanPWM.start(fan_full_power)
                     cooling = True
                 message += " Fan off"
         if debug:
